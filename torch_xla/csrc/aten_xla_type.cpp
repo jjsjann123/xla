@@ -2924,23 +2924,51 @@ at::Tensor AtenXlaType::rsub(const at::Tensor& self, const at::Scalar& other,
       XLATensor::rsub(bridge::GetXlaTensor(self), other, alpha));
 }
 
-at::Tensor& AtenXlaType::scatter_(at::Tensor& self, int64_t dim,
-                                  const at::Tensor& index,
-                                  const at::Tensor& src) {
+at::Tensor& AtenXlaType::scatter_out(const at::Tensor& self, int64_t dim,
+                                     const at::Tensor& index,
+                                     const at::Tensor& src,
+                                     c10::optional<std::string> reduce,
+                                     at::Tensor& out) {
   XLA_FN_COUNTER("xla::");
   XLATensor self_tensor = bridge::GetXlaTensor(self);
-  XLATensor::scatter_(self_tensor, dim, bridge::GetXlaTensor(index),
-                      bridge::GetXlaTensor(src));
-  return self;
+  XLATensor out_tensor = bridge::GetXlaTensor(out);
+  if (!reduce.has_value()) {
+    XLATensor::scatter_out(out_tensor, self_tensor, dim,
+                           bridge::GetXlaTensor(index),
+                           bridge::GetXlaTensor(src));
+    return out;
+  } else if (*reduce == "add") {
+    XLATensor::scatter_add_out(out_tensor, self_tensor, dim,
+                               bridge::GetXlaTensor(index),
+                               bridge::GetXlaTensor(src));
+  } else {
+    // TODO: implement scatter_mul
+    return AtenXlaTypeDefault::scatter_out(self, dim, index, src, reduce, out);
+  }
+  return out;
 }
 
-at::Tensor& AtenXlaType::scatter_(at::Tensor& self, int64_t dim,
-                                  const at::Tensor& index,
-                                  const at::Scalar& value) {
+at::Tensor& AtenXlaType::scatter_out(const at::Tensor& self, int64_t dim,
+                                     const at::Tensor& index,
+                                     const at::Scalar& value,
+                                     c10::optional<std::string> reduce,
+                                     at::Tensor& out) {
   XLA_FN_COUNTER("xla::");
   XLATensor self_tensor = bridge::GetXlaTensor(self);
-  XLATensor::scatter_(self_tensor, dim, bridge::GetXlaTensor(index), value);
-  return self;
+  XLATensor out_tensor = bridge::GetXlaTensor(out);
+  if (!reduce.has_value()) {
+    XLATensor::scatter_out(out_tensor, self_tensor, dim,
+                           bridge::GetXlaTensor(index), value);
+    return out;
+  } else if (*reduce == "add") {
+    XLATensor::scatter_add_out(out_tensor, self_tensor, dim,
+                               bridge::GetXlaTensor(index), value);
+  } else {
+    // TODO: implement scatter_mul
+    return AtenXlaTypeDefault::scatter_out(self, dim, index, value, reduce,
+                                           out);
+  }
+  return out;
 }
 
 at::Tensor& AtenXlaType::scatter_add_(at::Tensor& self, int64_t dim,
