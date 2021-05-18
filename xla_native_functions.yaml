@@ -214,7 +214,10 @@ supported:
   - index_fill_.int_Tensor
   - scatter.src_out
   - scatter.value_out
+  - scatter.reduce_out
+  - scatter.value_reduce_out
   - scatter_add_
+  - scatter_add.out
   - eq_.Scalar
   - eq_.Tensor
   - bitwise_and.Tensor_out
